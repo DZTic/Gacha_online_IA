@@ -424,15 +424,25 @@ class AIAgent {
 
     async farmBestCompletedLevel() {
         const teamPower = ownedCharacters.sort((a,b) => b.power - a.power).slice(0, 3).reduce((s, c) => s + c.power, 0);
-        const farmableLevels = storyProgress.filter(p => p.completed && allGameLevels.find(l => l.id === p.id && l.type === 'story' && !l.isInfinite && teamPower > l.enemy.power * 1.2)).map(p => allGameLevels.find(l => l.id === p.id));
+        const farmableLevels = storyProgress.filter(p => p.completed && allGameLevels.find(l => l.id === p.id && l.type === 'story' && !l.isInfinite && teamPower > l.enemy.power * 1.1)).map(p => allGameLevels.find(l => l.id === p.id));
         if (farmableLevels.length > 0) {
             const calculateFarmScore = (level) => {
+                // Reward Score
                 const worldData = baseStoryLevels.find(l => l.id === level.id);
                 const worldNumberMatch = worldData ? worldData.world.match(/\d+/) : null;
                 const worldNumber = worldNumberMatch ? parseInt(worldNumberMatch[0]) : 1;
                 const worldReward = worldRewards.find(wr => wr.world === worldNumber);
                 const itemExp = worldReward && itemEffects[worldReward.item] ? itemEffects[worldReward.item].exp : 0;
-                return ((level.rewards.gems * 0.8) + (itemExp * 1.2)) * level.enemy.power;
+                const rewardScore = (level.rewards.gems * 1.0) + (level.rewards.coins * 0.1) + (itemExp * 0.5);
+
+                // Difficulty Penalty
+                const powerRatio = teamPower / level.enemy.power;
+                let difficultyPenalty = 0;
+                if (powerRatio < 1.5) {
+                    difficultyPenalty = (1.5 - powerRatio) * 50;
+                }
+
+                return rewardScore - difficultyPenalty;
             };
             const scoredLevels = farmableLevels.map(level => ({...level, farmScore: calculateFarmScore(level)})).sort((a, b) => b.farmScore - a.farmScore);
             this.logReflection('--- Analyse des niveaux à farmer ---');
