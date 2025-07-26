@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- FIN NOUVEAU -->
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard-enhancements.css"> <!-- NOUVEAU -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
@@ -918,7 +919,6 @@
   </div> <!-- Fin de app-container -->
 
   <!-- Panneau de contrôle et de visualisation de l'IA -->
-  <!-- CORRECTION : La classe "w-full" a été retirée pour corriger le bug d'affichage -->
   <div id="ai-dashboard" class="hidden bg-gray-900 bg-opacity-90 backdrop-blur-md text-white p-4 rounded-lg shadow-2xl border border-teal-500 z-[9999]">
     <div id="ai-dashboard-header" class="flex justify-between items-center mb-3 cursor-pointer">
         <h3 class="text-xl font-bold text-teal-300">Tableau de Bord IA</h3>
@@ -927,78 +927,84 @@
     </div>
     
     <div id="ai-dashboard-content" class="space-y-3">
-        <!-- Section des contrôles -->
+        <!-- Section des contrôles principaux -->
         <div class="flex flex-wrap gap-2 items-center pb-3 border-b border-gray-700">
-            <button id="ai-start-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">Démarrer</button>
-            <button id="ai-stop-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm">Arrêter</button>
-            <button id="ai-reset-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 px-3 rounded text-xs">Réinitialiser IA</button>
-            <button id="ai-save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-xs">Sauvegarde</button>
-            <button id="ai-export-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-1 px-3 rounded text-xs">Exporter</button>
-            <button id="ai-import-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-3 rounded text-xs">Importer</button>
+            <button id="ai-start-btn" class="btn-ai-control bg-green-600">Démarrer</button>
+            <button id="ai-stop-btn" class="btn-ai-control bg-red-600">Arrêter</button>
+            <button id="ai-reset-btn" class="btn-ai-control-xs bg-yellow-600">Reset IA</button>
+            <button id="ai-save-btn" class="btn-ai-control-xs bg-blue-600">Sauver</button>
+            <button id="ai-export-btn" class="btn-ai-control-xs bg-teal-600">Exporter</button>
+            <button id="ai-import-btn" class="btn-ai-control-xs bg-indigo-600">Importer</button>
             <label class="flex items-center text-xs ml-auto">
                 Vitesse: <input type="range" id="ai-speed-slider" min="50" max="2000" value="500" class="ml-1 w-20">
             </label>
         </div>
         <input type="file" id="ai-import-files" multiple accept=".json,.bin" class="hidden">
         
-        <!-- Section des Stats Principales (2 colonnes) -->
-        <div class="grid grid-cols-2 gap-x-4 text-sm text-gray-300">
-            <!-- Colonne de Gauche: Stats Temps Réel -->
-            <div class="space-y-1">
-                <p>Statut IA: <span id="ai-status-text" class="text-white font-semibold">Arrêtée</span></p>
-                <p>Puissance Équipe: <span id="ai-total-power-val" class="text-purple-300 font-semibold">0</span></p>
-                <p>Meilleur Perso: <span id="ai-best-char-power-val" class="text-purple-300 font-semibold">0</span></p>
-                <p class="col-span-2">Dernière Action: <span id="ai-last-action-val" class="text-white font-semibold">-</span></p>
+        <!-- Conteneur principal pour les stats et graphiques -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Colonne de Gauche: Stats et Visualisations -->
+            <div class="md:col-span-1 space-y-4">
+                <!-- Carte: État Actuel -->
+                <div class="ai-card">
+                    <h4 class="ai-card-header">État Actuel</h4>
+                    <div class="space-y-1 text-sm text-gray-300">
+                        <p>Statut IA: <span id="ai-status-text" class="text-white font-semibold">Arrêtée</span></p>
+                        <p>Puissance Équipe: <span id="ai-total-power-val" class="text-purple-300 font-semibold">0</span></p>
+                        <p>Meilleur Perso: <span id="ai-best-char-power-val" class="text-purple-300 font-semibold">0</span></p>
+                        <p>Mythics: <span id="ai-mythic-count-val" class="text-pink-400 font-semibold">0</span> | Secrets: <span id="ai-secret-count-val" class="text-red-400 font-semibold">0</span></p>
+                    </div>
+                </div>
+                <!-- Carte: Apprentissage -->
+                <div class="ai-card">
+                    <h4 class="ai-card-header">Apprentissage</h4>
+                     <div class="space-y-1 text-sm text-gray-300">
+                        <p>Épisode: <span id="ai-episode-num" class="text-white font-semibold">0</span></p>
+                        <p>Récompense Ép.: <span id="ai-current-reward-val" class="text-white font-semibold">0.00</span></p>
+                        <p>Exploration (ε): <span id="ai-exploration-rate-val" class="text-white font-semibold">1.000</span></p>
+                        <p>État UI: <span id="ai-ui-state-val" class="text-white font-semibold">-</span></p>
+                    </div>
+                </div>
+                <!-- Carte: Composition Inventaire -->
+                <div class="ai-card">
+                    <div class="h-40">
+                        <canvas id="ai-rarity-chart"></canvas>
+                    </div>
+                </div>
             </div>
-            <!-- Colonne de Droite: Stats Apprentissage -->
-            <div class="space-y-1 text-right">
-                <p>Épisode: <span id="ai-episode-num" class="text-white font-semibold">0</span></p>
-                <p>Récompense Ép.: <span id="ai-current-reward-val" class="text-white font-semibold">0.00</span></p>
-                <p>Exploration (ε): <span id="ai-exploration-rate-val" class="text-white font-semibold">1.000</span></p>
-                <p>État UI: <span id="ai-ui-state-val" class="text-white font-semibold">-</span></p>
+
+            <!-- Colonne Centrale: Graphique Principal -->
+            <div class="md:col-span-2 space-y-4">
+                <div class="ai-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="ai-card-header">Performance sur le long terme</h4>
+                        <button id="ai-zoom-btn" class="btn-ai-control-xs bg-gray-700">Zoom</button>
+                    </div>
+                    <div class="h-48">
+                        <canvas id="ai-performance-chart"></canvas>
+                    </div>
+                </div>
+                <!-- NOUVEAU: Carte pour la visualisation des Q-Values -->
+                <div class="ai-card">
+                    <h4 class="ai-card-header">Analyse de Décision (Q-Values)</h4>
+                    <div id="ai-q-values-container" class="text-xs text-gray-300 font-mono space-y-1 overflow-y-auto h-24">
+                        <p>En attente d'une décision de l'IA...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="ai-session-stats" class="border-t border-b border-gray-700 py-2 my-2">
-            <h4 class="text-md font-bold text-gray-300 mb-2 text-center">Statistiques de Session</h4>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <p>Meilleur Score:</p><span id="ai-best-score-val" class="text-green-400 font-semibold text-right">0</span>
-                <p>Taux Victoire (approx.):</p><span id="ai-win-rate-val" class="text-blue-400 font-semibold text-right">N/A</span>
-                <p>Moy. Gemmes/Épisode:</p><span id="ai-avg-gems-val" class="text-blue-400 font-semibold text-right">0</span>
-                <p>Moy. Puissance/Épisode:</p><span id="ai-avg-power-val" class="text-purple-300 font-semibold text-right">0</span>
+        <!-- Section des Logs (prend toute la largeur) -->
+        <div class="ai-card">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="ai-card-header">Journaux d'activité</h4>
+                <button id="ai-clear-logs-btn" class="btn-ai-control-xs bg-gray-700">Effacer</button>
             </div>
-        </div>
-
-        <!-- Section Visualisations (2 colonnes) -->
-        <div class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-700">
-            <div class="h-40">
-                <canvas id="ai-rarity-chart"></canvas>
+            <div id="ai-log-container" class="bg-black bg-opacity-50 p-2 rounded h-40 overflow-y-auto text-xs font-mono border border-gray-700">
+                <!-- Les logs seront affichés ici -->
             </div>
-            <div id="ai-action-table-container" class="text-xs text-gray-300 bg-black bg-opacity-20 p-2 rounded overflow-y-auto h-40">
-                <h5 class="font-bold text-center mb-1">Compteur d'Actions</h5>
-                <table id="ai-action-table" class="w-full"></table>
-            </div>
-        </div>
-        
-        <!-- Section Graphique Principal -->
-        <div class="relative pt-3 border-t border-gray-700">
-             <h4 class="text-md font-bold text-gray-300 mb-2 text-center">Progression sur le long terme</h4>
-            <div class="h-48">
-                <canvas id="ai-performance-chart"></canvas>
-            </div>
-            <button id="ai-zoom-btn" class="absolute top-3 right-0 bg-gray-700 hover:bg-gray-600 text-white py-0.5 px-2 rounded text-xs">Zoom/Dézoom</button>
-        </div>
-
-        <!-- Section Logs -->
-        <div class="flex justify-between items-center pt-3 border-t border-gray-700">
-            <h4 class="text-md font-bold text-gray-300">Logs :</h4>
-            <button id="ai-clear-logs-btn" class="bg-gray-700 hover:bg-gray-600 text-white py-0.5 px-2 rounded text-xs">Effacer</button>
-        </div>
-        <div id="ai-log-container" class="bg-black bg-opacity-50 p-2 rounded h-32 overflow-y-auto text-xs font-mono border border-gray-700">
-            <!-- Les décisions de l'IA seront affichées ici -->
         </div>
     </div>
-
     <div id="ai-resize-grip"></div>
   </div>
   
@@ -1038,8 +1044,9 @@
   <script src="data.js"></script>
   <script src="script.js"></script>
   <!-- NOUVEAU: Scripts pour l'IA -->
-  <script src="ai-dashboard.js"></script>
-  <script src="ai-agent.js"></script>
+  <script src="ai-dashboard-enhanced.js"></script>
+  <script src="dashboard-enhancements.js"></script> <!-- NOUVEAU -->
+  <script src="ai-agent-enhanced.js"></script>
   <!-- FIN NOUVEAU -->
   
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'939104e50fc0d0b6',t:'MTc0NjEyMDc1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
