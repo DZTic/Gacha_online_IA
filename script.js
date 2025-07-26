@@ -3486,6 +3486,15 @@
         // C'est mieux de laisser la fonction appelante gérer le nettoyage de `resultElement`
     }
 
+    function openPopout() {
+        const popoutWidth = 1280;
+        const popoutHeight = 800;
+        const popoutFeatures = `width=${popoutWidth},height=${popoutHeight},scrollbars=yes,resizable=yes`;
+        
+        // Ouvre l'URL actuelle dans une nouvelle fenêtre avec les dimensions spécifiées
+        window.open(window.location.href, 'GachaGamePopout', popoutFeatures);
+    }
+
     async function pullCharacter() {
         console.log("pullCharacter (standard banner) appelé pour un tirage direct");
         currentPullType = "standard";
@@ -7382,6 +7391,13 @@
       updateFusionSelectionDisplay();
     });
 
+    document.addEventListener('DOMContentLoaded', () => {
+        const popoutButton = document.getElementById('popout-btn');
+        if (popoutButton) {
+            popoutButton.addEventListener('click', openPopout);
+        }
+    });
+
     cancelPullMethodButton.addEventListener("click", cancelPullMethod);
     pullButton.addEventListener("click", pullCharacter);
     multiPullButton.addEventListener("click", multiPull);
@@ -7606,7 +7622,7 @@
             updateCharacterDisplay();
         });
     }
-
+    
     applyCurseButton.addEventListener("click", applyCurse);
     document.getElementById("load-preset-button").addEventListener("click", loadPreset);
     document.getElementById("confirm-preset").addEventListener("click", confirmPreset);
@@ -7657,7 +7673,7 @@
     document.getElementById("materiaux-level-list").addEventListener('click', handleLevelStartClick);
 
     // NOUVEAU: Fermeture de la modale d'avertissement
-     const autoClickerModalCloseButton = document.getElementById('auto-clicker-modal-close-button');
+    const autoClickerModalCloseButton = document.getElementById('auto-clicker-modal-close-button');
     if (autoClickerModalCloseButton) {
         autoClickerModalCloseButton.addEventListener('click', () => {
             closeModalHelper(autoClickerWarningModal);
