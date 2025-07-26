@@ -388,14 +388,6 @@
         </div>
       </div>
 
-      <div id="stats" class="mb-6 p-4 bg-gray-800 bg-opacity-50 rounded-lg">
-        <h2 class="text-xl sm:text-2xl text-white font-bold mb-4">Statistiques</h2>
-        <p class="text-white text-sm sm:text-base">Rare: <span id="rare-count">0</span></p>
-        <p class="text-white text-sm sm:text-base">Épique: <span id="epic-count">0</span></p>
-        <p class="text-white text-sm sm:text-base">Légendaire: <span id="legendary-count">0</span></p>
-        <p class="text-white text-sm sm:text-base">Mythic: <span id="mythic-count">0</span></p>
-        <p class="text-white text-sm sm:text-base">Secret: <span id="secret-count">0</span></p>
-      </div>
     </div> <!-- Fin de game-container -->
 
     <!-- Toutes vos modales (stats-modal, character-selection-modal, etc.) restent ici, inchangées -->
@@ -926,71 +918,64 @@
         <button id="ai-toggle-visibility-btn" class="text-lg font-bold text-gray-400 hover:text-gray-200 transition-colors duration-200">▲</button>
     </div>
     
-    <div id="ai-dashboard-content" class="space-y-3">
+    <div id="ai-dashboard-content" class="space-y-4">
         <!-- Section des contrôles principaux -->
-        <div class="flex flex-wrap gap-2 items-center pb-3 border-b border-gray-700">
-            <button id="ai-start-btn" class="btn-ai-control bg-green-600">Démarrer</button>
-            <button id="ai-stop-btn" class="btn-ai-control bg-red-600">Arrêter</button>
-            <button id="ai-reset-btn" class="btn-ai-control-xs bg-yellow-600">Reset IA</button>
-            <button id="ai-save-btn" class="btn-ai-control-xs bg-blue-600">Sauver</button>
-            <button id="ai-export-btn" class="btn-ai-control-xs bg-teal-600">Exporter</button>
-            <button id="ai-import-btn" class="btn-ai-control-xs bg-indigo-600">Importer</button>
-            <label class="flex items-center text-xs ml-auto">
-                Vitesse: <input type="range" id="ai-speed-slider" min="50" max="2000" value="500" class="ml-1 w-20">
-            </label>
+        <div class="ai-card">
+            <div class="flex flex-wrap gap-2 items-center">
+                <button id="ai-start-btn" class="btn-ai-control bg-green-600">Démarrer</button>
+                <button id="ai-stop-btn" class="btn-ai-control bg-red-600" disabled>Arrêter</button>
+                <button id="ai-reset-btn" class="btn-ai-control-xs bg-yellow-600">Reset IA</button>
+                <button id="ai-save-btn" class="btn-ai-control-xs bg-blue-600">Sauver</button>
+                <button id="ai-export-btn" class="btn-ai-control-xs bg-teal-600">Exporter</button>
+                <button id="ai-import-btn" class="btn-ai-control-xs bg-indigo-600">Importer</button>
+                <label class="flex items-center text-xs ml-auto">
+                    Vitesse: <input type="range" id="ai-speed-slider" min="50" max="2000" value="500" class="ml-1 w-24">
+                </label>
+            </div>
         </div>
         <input type="file" id="ai-import-files" multiple accept=".json,.bin" class="hidden">
         
         <!-- Conteneur principal pour les stats et graphiques -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- Colonne de Gauche: Stats et Visualisations -->
+            <!-- Colonne 1: Apprentissage et État du Jeu -->
             <div class="md:col-span-1 space-y-4">
-                <!-- Carte: État Actuel -->
-                <div class="ai-card">
-                    <h4 class="ai-card-header">État Actuel</h4>
-                    <div class="space-y-1 text-sm text-gray-300">
-                        <p>Statut IA: <span id="ai-status-text" class="text-white font-semibold">Arrêtée</span></p>
-                        <p>Puissance Équipe: <span id="ai-total-power-val" class="text-purple-300 font-semibold">0</span></p>
-                        <p>Meilleur Perso: <span id="ai-best-char-power-val" class="text-purple-300 font-semibold">0</span></p>
-                        <p>Mythics: <span id="ai-mythic-count-val" class="text-pink-400 font-semibold">0</span> | Secrets: <span id="ai-secret-count-val" class="text-red-400 font-semibold">0</span></p>
-                    </div>
-                </div>
-                <!-- Carte: Apprentissage -->
                 <div class="ai-card">
                     <h4 class="ai-card-header">Apprentissage</h4>
-                     <div class="space-y-1 text-sm text-gray-300">
+                    <div class="space-y-1 text-sm text-gray-300">
+                        <p>Statut: <span id="ai-status-text" class="text-white font-semibold">Arrêtée</span></p>
                         <p>Épisode: <span id="ai-episode-num" class="text-white font-semibold">0</span></p>
                         <p>Récompense Ép.: <span id="ai-current-reward-val" class="text-white font-semibold">0.00</span></p>
-                        <p>Dernière Action: <span id="ai-last-action-val" class="text-white font-semibold">-</span></p>
                         <p>Exploration (ε): <span id="ai-exploration-rate-val" class="text-white font-semibold">1.000</span></p>
+                        <p>Dernière Action: <span id="ai-last-action-val" class="text-white font-semibold">-</span></p>
                         <p>État UI: <span id="ai-ui-state-val" class="text-white font-semibold">-</span></p>
                     </div>
                 </div>
-                <!-- **** CORRECTION APPLIQUÉE ICI **** -->
-                <!-- Carte pour les statistiques de session -->
                 <div class="ai-card">
-                    <h4 class="ai-card-header">Statistiques de Session</h4>
+                    <h4 class="ai-card-header">État du Jeu</h4>
                     <div class="space-y-1 text-sm text-gray-300">
-                        <p>Meilleur Score: <span id="ai-best-score-val" class="text-white font-semibold">0</span></p>
-                        <p>Taux de Victoire: <span id="ai-win-rate-val" class="text-white font-semibold">N/A</span></p>
-                        <p>Gemmes Moy./Ép.: <span id="ai-avg-gems-val" class="text-green-400 font-semibold">0</span></p>
-                        <p>Puiss. Moy./Ép.: <span id="ai-avg-power-val" class="text-purple-300 font-semibold">0</span></p>
-                    </div>
-                </div>
-                <!-- Carte: Composition Inventaire -->
-                <div class="ai-card">
-                    <div class="h-40">
-                        <canvas id="ai-rarity-chart"></canvas>
+                        <p>Puissance Équipe: <span id="ai-total-power-val" class="text-purple-300 font-semibold">0</span></p>
+                        <p>Meilleur Perso: <span id="ai-best-char-power-val" class="text-purple-300 font-semibold">0</span></p>
+                        <p>Mythics: <span id="ai-mythic-count-val" class="text-pink-400 font-semibold">0</span></p>
+                        <p>Secrets/Vanguards: <span id="ai-secret-count-val" class="text-red-400 font-semibold">0</span></p>
+                        <div class="pt-2 h-36">
+                            <canvas id="ai-rarity-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Colonne Centrale: Graphique Principal et Table d'Actions -->
+            <!-- Colonne 2 & 3: Performance et Actions -->
             <div class="md:col-span-2 space-y-4">
                 <div class="ai-card">
                     <div class="flex justify-between items-center mb-2">
-                        <h4 class="ai-card-header">Performance sur le long terme</h4>
+                        <h4 class="ai-card-header">Performance et Stats de Session</h4>
                         <button id="ai-zoom-btn" class="btn-ai-control-xs bg-gray-700">Zoom</button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-x-4 text-center text-xs mb-2">
+                        <div><p class="text-gray-400">Meilleur Score</p><p id="ai-best-score-val" class="font-semibold text-lg">0</p></div>
+                        <div><p class="text-gray-400">Taux Victoire</p><p id="ai-win-rate-val" class="font-semibold text-lg">N/A</p></div>
+                        <div><p class="text-gray-400">Gemmes/Ép.</p><p id="ai-avg-gems-val" class="font-semibold text-lg text-green-400">0</p></div>
+                        <div><p class="text-gray-400">Puiss./Ép.</p><p id="ai-avg-power-val" class="font-semibold text-lg text-purple-300">0</p></div>
                     </div>
                     <div class="h-48 relative">
                         <canvas id="ai-performance-chart"></canvas>
@@ -1001,27 +986,22 @@
                     <div class="overflow-y-auto h-24">
                         <table id="ai-action-table" class="w-full text-left text-xs">
                             <thead>
-                                <tr class="border-b border-gray-700">
-                                    <th class="py-1">Action</th>
-                                    <th class="py-1 text-right">Compte</th>
-                                </tr>
+                                <tr class="border-b border-gray-700"><th class="py-1">Action</th><th class="py-1 text-right">Compte</th></tr>
                             </thead>
-                            <tbody>
-                                <!-- Données insérées par JS -->
-                            </tbody>
+                            <tbody><!-- Données insérées par JS --></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Section des Logs (prend toute la largeur) -->
+        <!-- Section des Logs -->
         <div class="ai-card">
             <div class="flex justify-between items-center mb-2">
                 <h4 class="ai-card-header">Journaux d'activité</h4>
                 <button id="ai-clear-logs-btn" class="btn-ai-control-xs bg-gray-700">Effacer</button>
             </div>
-            <div id="ai-log-container" class="bg-black bg-opacity-50 p-2 rounded h-40 overflow-y-auto text-xs font-mono border border-gray-700">
+            <div id="ai-log-container" class="bg-black bg-opacity-50 p-2 rounded h-48 overflow-y-auto text-xs font-mono border border-gray-700">
                 <!-- Les logs seront affichés ici -->
             </div>
         </div>

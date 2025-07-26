@@ -593,11 +593,6 @@
     const missionTimerElement = document.getElementById("mission-timer");
     const shopItemsElement = document.getElementById("shop-items");
     const levelListElement = document.getElementById("level-list");
-    const rareCountElement = document.getElementById("rare-count");
-    const epicCountElement = document.getElementById("epic-count");
-    const legendaryCountElement = document.getElementById("legendary-count");
-    const mythicCountElement = document.getElementById("mythic-count");
-    const secretCountElement = document.getElementById("secret-count");
     const tabButtons = document.querySelectorAll(".tab-button"); // This will include the new tab-stat-change
     const subtabButtons = document.querySelectorAll(".subtab-button"); // Keep this for Play and Inventory subtabs
     const deleteButton = document.getElementById("delete-button");
@@ -3334,13 +3329,6 @@
       deleteButton.classList.toggle("bg-red-700", isDeleteMode);
       deleteButton.classList.toggle("bg-red-500", !isDeleteMode);
 
-      const stats = { Rare: 0, Épique: 0, Légendaire: 0, Mythic: 0, Secret: 0 };
-      ownedCharacters.forEach(char => stats[char.rarity]++);
-      rareCountElement.textContent = stats.Rare;
-      epicCountElement.textContent = stats.Épique;
-      legendaryCountElement.textContent = stats.Légendaire;
-      mythicCountElement.textContent = stats.Mythic;
-      secretCountElement.textContent = stats.Secret;
       const standardPityDisplay = document.getElementById("standard-pity-display");
       const specialPityDisplay = document.getElementById("special-pity-display");
       if (standardPityDisplay) standardPityDisplay.textContent = standardPityCount;
