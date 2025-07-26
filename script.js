@@ -19,7 +19,9 @@
     const UI_STATE_TRAIT = 'TRAIT_TAB';
     const UI_STATE_CURSE = 'CURSE_TAB';
     const UI_STATE_STAT_CHANGE = 'STAT_CHANGE_TAB';
-    const UI_STATE_LIMIT_BREAK = 'LIMIT_BREAK_TAB'; // <--- NOUVEAU : AJOUTEZ CETTE LIGNE
+    const UI_STATE_LIMIT_BREAK = 'LIMIT_BREAK_TAB';
+    const UI_STATE_STATS_MODAL = 'STATS_MODAL';
+    const UI_STATE_FUSION_SELECTION = 'FUSION_SELECTION';
     // NOUVEAU : États pour les sous-onglets de "Jouer"
     const UI_STATE_LEGEND_SUBTAB = 'LEGEND_SUBTAB';
     const UI_STATE_CHALLENGE_SUBTAB = 'CHALLENGE_SUBTAB';
@@ -27,7 +29,6 @@
 
 
     const UI_STATE_BATTLE_SELECTION = 'BATTLE_SELECTION';
-    const UI_STATE_FUSION_SELECTION = 'FUSION_SELECTION';
     const UI_STATE_SETTINGS = 'SETTINGS';
     const UI_STATE_GIVE_ITEMS = 'GIVE_ITEMS';
 
@@ -5836,6 +5837,8 @@
 
     function getVisibleUIContext() {
         // Les modales ont la priorité car elles recouvrent tout le reste.
+        if (document.getElementById('stats-modal') && !document.getElementById('stats-modal').classList.contains('hidden')) return UI_STATE_STATS_MODAL;
+        if (document.getElementById('fusion-modal') && !document.getElementById('fusion-modal').classList.contains('hidden')) return UI_STATE_FUSION_SELECTION;
         if (document.getElementById('character-selection-modal') && !document.getElementById('character-selection-modal').classList.contains('hidden')) return UI_STATE_BATTLE_SELECTION;
         if (document.getElementById('fusion-modal') && !document.getElementById('fusion-modal').classList.contains('hidden')) return UI_STATE_FUSION_SELECTION;
         if (document.getElementById('settings-modal') && !document.getElementById('settings-modal').classList.contains('hidden')) return UI_STATE_SETTINGS;

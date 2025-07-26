@@ -11,7 +11,7 @@ class AIAgent {
         
         // CORRIGÉ FINAL: La taille de l'état est de 12 (jeu) + 14 (UI) = 26
         this.maxActionSpaceSize = 14; 
-        this.stateSize = 12 + 14; // 26 au total
+        this.stateSize = 13 + 16;
         this.model = this.createModel();
 
         this.delay = 500;
@@ -62,9 +62,19 @@ class AIAgent {
             ],
             [UI_STATE_INVENTORY]: [
                 { name: "Utiliser les objets d'EXP", func: this.useExpItemsOnBestChar },
+                { name: "Inspecter le meilleur perso pour fusion", func: this.inspectBestCharForFusion },
                 { name: "Retourner au menu principal", func: () => showTab('play') }
             ],
-            [UI_STATE_GIVE_ITEMS]: [
+            [UI_STATE_STATS_MODAL]: [
+                { name: "Lancer la fusion (auto-sélection)", func: this.executeFusionOnBestChar },
+                { name: "Donner des objets (auto-sélection)", func: this.executeGiveItemsOnCurrentChar },
+                { name: "Retourner à l'inventaire", func: () => closeModal() } 
+            ],
+            [UI_STATE_FUSION_SELECTION]: [
+                { name: "Confirmer la fusion (Fallback)", func: () => confirmFusion() },
+                { name: "Annuler la fusion (Fallback)", func: () => cancelFusion() }
+            ],
+                    [UI_STATE_GIVE_ITEMS]: [
                 { name: "Confirmer le don d'objets", func: () => confirmGiveItems() },
                 { name: "Annuler le don d'objets", func: () => cancelGiveItems() }
             ],
@@ -188,6 +198,7 @@ class AIAgent {
     getState() {
         const teamPower = ownedCharacters.filter(c => !c.locked).sort((a, b) => b.power - a.power).slice(0, 3).reduce((sum, char) => sum + char.power, 0);
         const bestCharacterPower = ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.power)) : 0;
+        const bestCharacterLevel = ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.level)) : 0;
         const legendaryCount = ownedCharacters.filter(c => c.rarity === 'Légendaire').length;
         const mythicCount = ownedCharacters.filter(c => c.rarity === 'Mythic').length;
         const topTierCount = ownedCharacters.filter(c => c.rarity === 'Secret' || c.rarity === 'Vanguard').length;
@@ -198,6 +209,7 @@ class AIAgent {
             coins / 50000,
             teamPower / 100000,
             bestCharacterPower / 10000,
+            bestCharacterLevel / 100,
             pullCount / 1000,
             legendaryCount / 20,
             mythicCount / 10,
@@ -212,7 +224,7 @@ class AIAgent {
             UI_STATE_MAIN, UI_STATE_BATTLE_SELECTION, UI_STATE_INVENTORY, 
             UI_STATE_GIVE_ITEMS, UI_STATE_MISSIONS, UI_STATE_SHOP, 
             UI_STATE_EVOLUTION_TAB, UI_STATE_TRAIT, UI_STATE_CURSE, UI_STATE_STAT_CHANGE,
-            UI_STATE_LIMIT_BREAK, // <--- NOUVEAU : AJOUTEZ CETTE LIGNE
+            UI_STATE_LIMIT_BREAK,UI_STATE_STATS_MODAL, UI_STATE_FUSION_SELECTION,
             UI_STATE_LEGEND_SUBTAB, UI_STATE_CHALLENGE_SUBTAB, UI_STATE_MATERIAL_SUBTAB
         ];
         const uiStateVector = uiStates.map(s => s === realTimeUIState ? 1 : 0);
@@ -247,8 +259,103 @@ class AIAgent {
 
         return actionIndex;
     }
+
+    async inspectBestCharForFusion() {
+        // Trouve le meilleur personnage qui n'est PAS à son niveau maximum.
+        const bestCharToLevelUp = ownedCharacters
+            .filter(c => !c.locked && c.level < (c.maxLevelCap || 60))
+            .sort((a, b) => b.power - a.power)[0];
+
+        if (!bestCharToLevelUp) {
+            throw new Error("Aucun personnage à améliorer trouvé (tous sont au niveau maximum).");
+        }
+
+        this.logReflection(`Inspection de ${bestCharToLevelUp.name} (Niv. ${bestCharToLevelUp.level}) pour une fusion potentielle.`);
+        
+        // Simule le clic sur la carte du personnage dans l'inventaire pour ouvrir ses stats.
+        await showCharacterStats(bestCharToLevelUp.id);
+    }
+
+    async executeFusionOnBestChar() {
+        // 1. L'IA doit d'abord trouver le bouton "Fusionner" dans la modale de stats et le cliquer.
+        // La fonction du jeu `startFusion` fait exactement cela.
+        if (typeof startFusion !== 'function') throw new Error("La fonction startFusion n'est pas disponible.");
+        // `currentFusionCharacterId` est défini globalement par `showCharacterStats`.
+        await startFusion(currentFusionCharacterId); 
+
+        // Attendre un court instant que la modale de fusion s'affiche
+        await new Promise(r => setTimeout(r, 150)); 
+
+        // 2. Sélectionner intelligemment les personnages "sacrifiables" (fodder)
+        const fodderCharacters = ownedCharacters
+            .filter(c => 
+                c.id !== currentFusionCharacterId && // Ne pas se fusionner soi-même
+                !c.locked &&                       // Ne pas fusionner les personnages verrouillés
+                (c.rarity === 'Rare' || c.rarity === 'Épique') // Cible uniquement les Rares et Épiques
+            )
+            .sort((a, b) => a.power - b.power) // Trier par puissance croissante pour sacrifier les plus faibles
+            .slice(0, 5); // Sélectionner jusqu'à 5 personnages
+
+        if (fodderCharacters.length === 0) {
+            // Si aucun personnage sacrifiable n'est trouvé, annuler pour ne pas rester bloqué.
+            if (typeof cancelFusion === 'function') cancelFusion();
+            throw new Error("Aucun personnage sacrifiable (Rare/Épique) trouvé.");
+        }
+
+        this.logReflection(`Sélection de ${fodderCharacters.length} personnage(s) à fusionner : ${fodderCharacters.map(c => c.name).join(', ')}.`);
+
+        // 3. Simuler la sélection de chaque personnage sacrifiable
+        for (const fodder of fodderCharacters) {
+            if (typeof selectFusionCharacter === 'function') {
+                selectFusionCharacter(fodder.id);
+            }
+        }
+        await new Promise(r => setTimeout(r, 50)); 
+
+        // 4. Confirmer la fusion
+        if (typeof confirmFusion !== 'function') throw new Error("La fonction confirmFusion n'est pas disponible.");
+        const fusionResult = await confirmFusion(); // Supposons que confirmFusion retourne des infos utiles
+        
+        // Cette action est un succès, même si fusionResult est simple.
+        // La récompense sera calculée sur le changement d'état (gain de puissance/niveau).
+        return { success: true }; 
+    }
+
+    // Version améliorée de useExpItemsOnBestChar qui devient "intelligente"
+    async executeGiveItemsOnCurrentChar() {
+        if (!currentGiveItemsCharacterId) throw new Error("Aucun personnage n'est inspecté.");
+
+        const expItems = Object.keys(inventory).filter(i => inventory[i] > 0 && itemEffects[i] && itemEffects[i].exp);
+        if (expItems.length === 0) {
+            if (typeof cancelGiveItems === 'function') cancelGiveItems();
+            throw new Error("Aucun objet d'EXP disponible dans l'inventaire.");
+        }
+        
+        this.logReflection(`Utilisation de tous les objets d'EXP sur le personnage inspecté.`);
+        
+        // `startGiveItems` est déjà appelé par le clic sur le bouton dans la modale de stats,
+        // mais on s'assure qu'il est bien appelé si ce n'est pas le cas.
+        if (getVisibleUIContext() !== UI_STATE_GIVE_ITEMS) {
+            await startGiveItems(currentGiveItemsCharacterId);
+            await new Promise(r => setTimeout(r, 150));
+        }
+
+        // Sélectionner tous les objets d'EXP disponibles
+        expItems.forEach(item => {
+            if (inventory[item] > 0) {
+                selectedItemsForGiving.set(item, inventory[item]);
+            }
+        });
+        
+        // Confirmer le don
+        if (typeof confirmGiveItems === 'function') {
+            await confirmGiveItems();
+            return { success: true };
+        } else {
+            throw new Error("La fonction confirmGiveItems n'est pas disponible.");
+        }
+    }
     
-    // --- CORRECTION IA ---
     // Nouvelle fonction helper pour encapsuler la logique de combat complète
     async _executeBattle(levelId) {
         if (levelId === null || levelId === undefined) {
@@ -554,9 +661,28 @@ class AIAgent {
         };
 
         if (!actionResult.success) {
-            reward -= 5; addLog("Échec de l'action", -5);
+            if (actionResult.name === "Inspecter le meilleur perso pour fusion" && actionResult.error.includes("tous sont au niveau maximum")) {
+                reward -= 2; 
+                addLog("Pénalité (Tentative de fusion inutile)", -2);
+            } else {
+                reward -= 5; addLog("Échec de l'action", -5);
+            }
             addLog("TOTAL FINAL", reward); this.logReflection(rewardLog.join('\n'));
             return reward;
+        }
+
+        const combatInitiationActions = [
+            "Jouer prochain niveau Histoire",
+            "Farmer le niveau Histoire le plus rentable",
+            "Farmer le niveau Challenge le plus rentable",
+            "Jouer Légende le plus fort",
+            "Jouer Challenge le plus fort",
+            "Jouer Matériaux le plus fort"
+        ];
+        if (combatInitiationActions.includes(actionResult.name)) {
+            const initiativeBonus = 3; // Bonus modéré pour encourager l'action
+            reward += initiativeBonus;
+            addLog("Bonus (Initiative de combat)", initiativeBonus);
         }
 
         // 1. Récompense massive pour les résultats de combat
@@ -574,7 +700,9 @@ class AIAgent {
         const improvementActions = [
             "Appliquer Trait au meilleur perso", "Appliquer Curse au meilleur perso",
             "Changer Stat du meilleur perso", "Utiliser les objets d'EXP",
-            "Briser la limite du meilleur perso"
+            "Briser la limite du meilleur perso",
+            "Inspecter le meilleur perso pour fusion",
+            "Lancer la fusion (auto-sélection)"
         ];
         if (improvementActions.includes(actionResult.name)) {
             const bonus = 15;
@@ -618,6 +746,13 @@ class AIAgent {
                 addLog("Bonus (Stratégie de farm anti-blocage)", bonus);
             }
         }
+
+        if (newState.bestCharacterLevel > oldState.bestCharacterLevel) {
+            const levelUpBonus = (newState.bestCharacterLevel - oldState.bestCharacterLevel) * 10;
+            reward += levelUpBonus;
+            addLog(`Bonus (Niveau perso augmenté x${newState.bestCharacterLevel - oldState.bestCharacterLevel})`, levelUpBonus);
+        }
+
         
         if (newState.totalPower > oldState.totalPower) {
             const r = (newState.totalPower - oldState.totalPower) * 0.02;
