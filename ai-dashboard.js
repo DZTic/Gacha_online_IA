@@ -144,16 +144,6 @@ class AIDashboard {
         if (this.currentRewardVal) this.currentRewardVal.textContent = this.agent.totalReward.toFixed(2);
         if (this.lastActionVal) this.lastActionVal.textContent = lastActionName;
         if (this.uiStateVal) this.uiStateVal.textContent = uiState;
-        
-        const teamPower = ownedCharacters.filter(c => !c.locked).sort((a, b) => b.power - a.power).slice(0, 3).reduce((sum, char) => sum + char.power, 0);
-        const bestCharacterPower = ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.power)) : 0;
-        const mythicCount = ownedCharacters.filter(c => c.rarity === 'Mythic').length;
-        const topTierCount = ownedCharacters.filter(c => c.rarity === 'Secret' || c.rarity === 'Vanguard').length;
-
-        if (this.totalPowerVal) this.totalPowerVal.textContent = teamPower.toLocaleString();
-        if (this.bestCharPowerVal) this.bestCharPowerVal.textContent = bestCharacterPower.toLocaleString();
-        if (this.mythicCountVal) this.mythicCountVal.textContent = mythicCount;
-        if (this.secretCountVal) this.secretCountVal.textContent = topTierCount;
     }
 
     updateSessionStats() {
@@ -327,6 +317,29 @@ class AIDashboard {
         };
         this.rarityChart.data.datasets[0].data = Object.values(counts);
         this.rarityChart.update('none');
+    }
+
+    log(message, type = 'info') {
+        const logEntry = document.createElement('div');
+        const timestamp = `[${new Date().toLocaleTimeString()}]`;
+        logEntry.textContent = `${timestamp} ${message}`;
+
+        switch (type) {
+            case 'error':
+                logEntry.style.color = '#ff6b6b';
+                break;
+            case 'save':
+                logEntry.style.color = '#6bff6b';
+                break;
+            case 'reflection':
+                logEntry.style.color = '#6b6bff';
+                break;
+            default:
+                logEntry.style.color = 'white';
+        }
+
+        this.logContainer.appendChild(logEntry);
+        this.logContainer.scrollTop = this.logContainer.scrollHeight;
     }
 
     updateActionTable() {

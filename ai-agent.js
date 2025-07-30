@@ -25,11 +25,12 @@ class AIAgent {
 
          this.ACTION_MAP = {
             [UI_STATE_MAIN]: [
+                // --- NOUVELLE MODIFICATION IA: Ajout du tirage x1 ---
+                { name: "Tirage Standard x1", func: () => pullCharacter() },
+                // --- FIN MODIFICATION ---
                 { name: "Tirage Standard x10", func: () => multiPull() },
                 { name: "Jouer prochain niveau Histoire", func: this.playNextStoryLevel },
-                // MODIFIÉ : Renommé pour plus de clarté
                 { name: "Farmer le niveau Histoire le plus rentable", func: this.farmBestCompletedLevel },
-                // NOUVEAU : Ajout de l'action pour farmer les challenges
                 { name: "Farmer le niveau Challenge le plus rentable", func: this.farmBestChallengeLevel },
                 { name: "Ouvrir l'Inventaire", func: () => showTab('inventory') },
                 { name: "Ouvrir l'onglet Traits", func: () => showTab('trait') },
@@ -41,10 +42,6 @@ class AIAgent {
                 { name: "Attendre", func: async () => {} }
             ],
             [UI_STATE_BATTLE_SELECTION]: [
-                // --- CORRECTION IA ---
-                // Les actions de sélection ont été retirées. L'IA ne prend plus de décision sur cet écran.
-                // Ces actions sont conservées comme fallback si l'IA se retrouve bloquée ici par erreur,
-                // lui donnant une porte de sortie pour annuler ou confirmer une sélection manuelle.
                 { name: "Confirmer la sélection", func: () => confirmSelection() },
                 { name: "Annuler la sélection", func: () => cancelSelection() }
             ],
@@ -91,7 +88,6 @@ class AIAgent {
                 { name: "Changer Stat du meilleur perso", func: this.changeStatOfBestChar },
                 { name: "Retourner au menu principal", func: () => showTab('play') }
             ],
-            // NOUVEAU : Définir les actions pour l'onglet Limit Break
             [UI_STATE_LIMIT_BREAK]: [
                 { name: "Briser la limite du meilleur perso", func: this.applyLimitBreakToBestChar },
                 { name: "Retourner au menu principal", func: () => showTab('play') }
@@ -104,9 +100,6 @@ class AIAgent {
     // --- Helper pour logger les réflexions ---
     logReflection(message) {
         this.currentEpisodeReflectionLogs.push(message);
-        if (this.dashboard) {
-            this.dashboard.log(`[IA Réflexion] ${message}`);
-        }
     }
 
     // --- Fonctions de sauvegarde, chargement, export et import ---
@@ -435,33 +428,54 @@ class AIAgent {
     }
 
     async farmBestCompletedLevel() {
-        const teamPower = ownedCharacters.sort((a,b) => b.power - a.power).slice(0, 3).reduce((s, c) => s + c.power, 0);
-        const farmableLevels = storyProgress.filter(p => p.completed && allGameLevels.find(l => l.id === p.id && l.type === 'story' && !l.isInfinite && teamPower > l.enemy.power * 1.1)).map(p => allGameLevels.find(l => l.id === p.id));
+        const teamPower = ownedCharacters.sort((a, b) => b.power - a.power).slice(0, 3).reduce((s, c) => s + c.power, 0);
+        
+        // --- CORRECTION IA: Le multiplicateur a été assoupli pour débloquer l'IA ---
+        const farmableLevels = storyProgress
+            .filter(p => 
+                p.completed && // Doit être un niveau déjà terminé
+                allGameLevels.find(l => 
+                    l.id === p.id && 
+                    l.type === 'story' && 
+                    !l.isInfinite && 
+                    teamPower > l.enemy.power * 1.1 // Assoupli de 1.2 à 1.1
+                )
+            )
+            .map(p => allGameLevels.find(l => l.id === p.id));
+
         if (farmableLevels.length > 0) {
+            // La logique de scoring est déjà correcte et favorise les niveaux plus élevés
             const calculateFarmScore = (level) => {
-                // Reward Score
+                let score = level.enemy.power; 
+                
                 const worldData = baseStoryLevels.find(l => l.id === level.id);
                 const worldNumberMatch = worldData ? worldData.world.match(/\d+/) : null;
-                const worldNumber = worldNumberMatch ? parseInt(worldNumberMatch[0]) : 1;
+                const worldNumber = worldNumberMatch ? parseInt(worldNumberMatch[0], 10) : 1;
                 const worldReward = worldRewards.find(wr => wr.world === worldNumber);
                 const itemExp = worldReward && itemEffects[worldReward.item] ? itemEffects[worldReward.item].exp : 0;
-                const rewardScore = (level.rewards.gems * 1.0) + (level.rewards.coins * 0.1) + (itemExp * 0.5);
+                
+                score += itemExp * 2.0;
+                score += (level.rewards.gems || 0) * 0.5;
+                score += (level.rewards.coins || 0) * 0.1;
 
-                // Difficulty Penalty
-                const powerRatio = teamPower / level.enemy.power;
-                let difficultyPenalty = 0;
-                if (powerRatio < 1.5) {
-                    difficultyPenalty = (1.5 - powerRatio) * 50;
-                }
-
-                return rewardScore - difficultyPenalty;
+                return score;
             };
-            const scoredLevels = farmableLevels.map(level => ({...level, farmScore: calculateFarmScore(level)})).sort((a, b) => b.farmScore - a.farmScore);
-            this.logReflection('--- Analyse des niveaux à farmer ---');
-            scoredLevels.slice(0, 5).forEach((level, index) => { this.logReflection(`${index === 0 ? '-> ' : '   '}[${level.name}]: Score = ${level.farmScore.toFixed(2)}`); });
-            this.logReflection(`Niveau choisi pour le farm : "${scoredLevels[0].name}"`);
-            await this._executeBattle(scoredLevels[0].id);
-        } else { throw new Error("Aucun niveau farmable trouvé."); }
+
+            const scoredLevels = farmableLevels
+                .map(level => ({...level, farmScore: calculateFarmScore(level)}))
+                .sort((a, b) => b.farmScore - a.farmScore);
+
+            this.logReflection('--- Analyse des niveaux dHistoire à farmer (Nouvelle Logique) ---');
+            scoredLevels.slice(0, 5).forEach((level, index) => { 
+                this.logReflection(`${index === 0 ? '-> ' : '   '}[${level.name}]: Score = ${level.farmScore.toFixed(2)} (Puissance Ennemi: ${level.enemy.power})`); 
+            });
+
+            const bestLevelToFarm = scoredLevels[0];
+            this.logReflection(`Niveau d'Histoire choisi pour le farm : "${bestLevelToFarm.name}"`);
+            await this._executeBattle(bestLevelToFarm.id);
+        } else { 
+            throw new Error("Aucun niveau d'histoire farmable trouvé (pas assez puissant ou aucun niveau complété)."); 
+        }
     }
     
     async playStrongestChallengeLevel() {
@@ -530,7 +544,6 @@ class AIAgent {
         this.logReflection(`Niveau de Challenge choisi pour le farm : "${scoredLevels[0].name}"`);
         await this._executeBattle(scoredLevels[0].id);
     }
-    // --- FIN CORRECTION IA ---
 
     async useExpItemsOnBestChar() {
         const bestChar = ownedCharacters.filter(c => !c.locked && c.level < (c.maxLevelCap || 60)).sort((a, b) => b.power - a.power)[0];
@@ -692,6 +705,25 @@ class AIAgent {
             addLog("TOTAL FINAL", reward); this.logReflection(rewardLog.join('\n'));
             return reward;
         }
+        
+        // --- NOUVELLE MODIFICATION IA: Bonus pour utilisation de ticket ---
+        // Le tirage x1 est la principale façon d'utiliser les tickets. On l'encourage.
+        if (actionResult.name === "Tirage Standard x1" && oldState.pullTickets > 0) {
+            const ticketBonus = 5.0; // Bonus pour l'action intelligente d'utiliser un ticket
+            reward += ticketBonus;
+            addLog("Bonus (Utilisation d'un ticket de tirage)", ticketBonus);
+        }
+        // --- FIN MODIFICATION ---
+        
+        // --- DEBUT CORRECTION IA: Encourager les tirages ---
+        const pullActions = ["Tirage Standard x10"]; // Tirage x1 est géré par le bonus ticket ou est moins stratégique
+        // Bonus pour encourager l'IA à utiliser ses gemmes quand elle en a beaucoup
+        if (pullActions.includes(actionResult.name) && oldState.gems > 2500) {
+            const strategicBonus = 15;
+            reward += strategicBonus;
+            addLog("Bonus (Investissement stratégique via tirage)", strategicBonus);
+        }
+        // --- FIN CORRECTION IA ---
 
         const combatInitiationActions = [
             "Jouer prochain niveau Histoire",
@@ -717,6 +749,32 @@ class AIAgent {
             reward += lossPenalty;
             addLog("Pénalité (Défaite en combat)", lossPenalty);
         }
+        
+        // --- DEBUT CORRECTION IA: Revaloriser les modes de jeu avancés ---
+        const levelDataForReward = allGameLevels.find(l => l.id === oldState.lastPlayedLevelId); 
+        if (levelDataForReward && actionResult.battleOutcome === 'win') {
+            let modeBonus = 0;
+            if (levelDataForReward.type === 'legendary') {
+                modeBonus = 150; // Récompense massive pour une victoire en Légende
+                addLog("Bonus (Victoire en mode Légende)", modeBonus);
+            } else if (levelDataForReward.type === 'challenge') {
+                modeBonus = 75; // Grosse récompense pour une victoire en Challenge
+                addLog("Bonus (Victoire en mode Challenge)", modeBonus);
+            } else if (levelDataForReward.type === 'material') {
+                modeBonus = 40; // Récompense notable pour le farm de matériaux
+                addLog("Bonus (Victoire en farm de Matériaux)", modeBonus);
+            }
+            reward += modeBonus;
+        }
+
+        // Bonus pour la navigation vers des écrans stratégiques
+        if (actionResult.name.includes("Ouvrir sous-onglet")) {
+            const navBonus = 2.0;
+            reward += navBonus;
+            addLog("Bonus (Navigation exploratoire)", navBonus);
+        }
+        // --- FIN CORRECTION IA ---
+
 
         // 2. Bonus pour les actions d'amélioration
         const improvementActions = [
@@ -732,10 +790,6 @@ class AIAgent {
             addLog("Bonus (Action d'amélioration réussie)", bonus);
         }
         
-        // --- CORRECTION IA ---
-        // La récompense d'encouragement pour les étapes de sélection a été supprimée
-        // pour empêcher l'IA d'exploiter une boucle de récompense sans combattre.
-
         const navigationPenaltyActions = ["Annuler la sélection", "Retourner au menu principal"];
         if (navigationPenaltyActions.includes(actionResult.name)) {
             let penalty;
@@ -828,14 +882,22 @@ class AIAgent {
             const oldUIState = getVisibleUIContext();
             const state = this.getState();
             
+            // --- NOUVELLE MODIFICATION IA: Ajout de pullTickets et lastPlayedLevelId ---
             const stateDataBefore = {
                 level: level,
+                gems: gems,
+                pullTickets: pullTickets, // Ajouté pour la logique de récompense
                 totalPower: ownedCharacters.filter(c => !c.locked).sort((a,b)=>b.power - a.power).slice(0,3).reduce((s,c)=>s+c.power,0),
+                bestCharacterPower: ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.power)) : 0,
+                bestCharacterLevel: ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.level)) : 0,
                 legendaryCount: ownedCharacters.filter(c => c.rarity === 'Légendaire').length,
                 mythicCount: ownedCharacters.filter(c => c.rarity === 'Mythic').length,
                 topTierCount: ownedCharacters.filter(c => c.rarity === 'Secret' || c.rarity === 'Vanguard').length,
-                uiState: oldUIState
+                uiState: oldUIState,
+                lastPlayedLevelId: currentLevelId // Ajouté pour la logique de récompense
             };
+            // --- FIN MODIFICATION ---
+
 
             const action = await this.chooseAction(state);
             const actionResult = await this.performAction(action);
@@ -860,6 +922,8 @@ class AIAgent {
                 level: level,
                 gems: gems,
                 totalPower: ownedCharacters.filter(c => !c.locked).sort((a,b)=>b.power - a.power).slice(0,3).reduce((s,c)=>s+c.power,0),
+                bestCharacterPower: ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.power)) : 0,
+                bestCharacterLevel: ownedCharacters.length > 0 ? Math.max(...ownedCharacters.map(c => c.level)) : 0,
                 legendaryCount: ownedCharacters.filter(c => c.rarity === 'Légendaire').length,
                 mythicCount: ownedCharacters.filter(c => c.rarity === 'Mythic').length,
                 topTierCount: ownedCharacters.filter(c => c.rarity === 'Secret' || c.rarity === 'Vanguard').length,
